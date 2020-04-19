@@ -4,7 +4,7 @@ all: rtl
 rtl: rtl.o rtldevice.o nco.o
 	$(CXX) -lrtlsdr -lpthread -o $@ $^
 
-rtl.o: rtl.cc rtldevice.h nco.h
+rtl.o: rtl.cc rtldevice.h nco.h buffer.h
 	$(CXX) -c $<
 
 rtldevice.o: rtldevice.cc rtldevice.h buffer.h
