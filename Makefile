@@ -17,4 +17,4 @@ algo.o: algo.cc buffer.h rtldevice.h
 	$(CXX) -c $<
 
 clean:
-	rm *.o rtl
+	rm -f *.o rtl

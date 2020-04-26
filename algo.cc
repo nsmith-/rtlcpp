@@ -3,18 +3,17 @@
 #include "buffer.h"
 #include "nco.h"
 
-// const std::array<int32_t, 31> downsample4_fir {
-//     2,   4,   6,   6,   1,  -7, -17, -26, -26, -14,  13,  52, 101,
-//   144, 177, 194, 177, 144, 101,  52,  13, -14, -26, -26, -17,  -7,
-//     1,   6,   6,   4,   2
-// };
-constexpr std::array<int32_t, 15> downsample4_fir {
-  -8,  -4,   8,  36,  84, 132, 172, 192, 172, 132,  84,  36,   8, -4,  -8
+constexpr std::array<int32_t, 31> lowpass_fir_taps {
+  3,   4,   5,   3,  -1,  -7, -12, -15, -13,  -4,  10,  30,  52, 71,  85,  93,  85,  71,  52,  30,  10,  -4, -13, -15, -12,  -7, -1,   3,   5,   4,   3
 };
-Buffer<int32_t, downsample4_fir.size() + 1> downconverted_i;
-Buffer<int32_t, downsample4_fir.size() + 1> downconverted_q;
-Buffer<int32_t, 16> downsample1_i;
-Buffer<int32_t, 16> downsample1_q;
+constexpr size_t lowpass_fir_div{5};
+constexpr size_t lowpass_fir_frac{512};
+Buffer<int32_t, lowpass_fir_taps.size() + 1> downconverted_i;
+Buffer<int32_t, lowpass_fir_taps.size() + 1> downconverted_q;
+Buffer<int32_t, lowpass_fir_taps.size() + 1> downsample1_i;
+Buffer<int32_t, lowpass_fir_taps.size() + 1> downsample1_q;
+Buffer<int32_t, lowpass_fir_taps.size() + 1> downsample2_i;
+Buffer<int32_t, lowpass_fir_taps.size() + 1> downsample2_q;
 uint32_t sum_mag{0};
 uint32_t n_mag{0};
 
@@ -31,20 +30,33 @@ std::tuple<uint32_t, uint32_t> algo(RTLDevice& device, Oscillator& oscillator) {
     if ( downconverted_i.full() ) {
       uint32_t firsum_i{0};
       uint32_t firsum_q{0};
-      for (size_t i=0; i < downsample4_fir.size(); ++i) {
-        firsum_i += downsample4_fir[i] * downconverted_i.get(i);
-        firsum_q += downsample4_fir[i] * downconverted_q.get(i);
+      for (size_t i=0; i < lowpass_fir_taps.size(); ++i) {
+        firsum_i += lowpass_fir_taps[i] * downconverted_i.get(i);
+        firsum_q += lowpass_fir_taps[i] * downconverted_q.get(i);
       }
-      downsample1_i.push(firsum_i / 1024);
-      downsample1_q.push(firsum_q / 1024);
-      downconverted_i.advance(4);
-      downconverted_q.advance(4);
+      downsample1_i.push(firsum_i / lowpass_fir_frac);
+      downsample1_q.push(firsum_q / lowpass_fir_frac);
+      downconverted_i.advance(lowpass_fir_div);
+      downconverted_q.advance(lowpass_fir_div);
 
-      if ( not downsample1_i.empty() ) {
-        auto i = downsample1_i.pop();
-        auto q = downsample1_q.pop();
-        sum_mag += (i*i + q*q) / 1024;
-        n_mag++;
+      if ( downsample1_i.full() ) {
+        uint32_t firsum_i{0};
+        uint32_t firsum_q{0};
+        for (size_t i=0; i < lowpass_fir_taps.size(); ++i) {
+          firsum_i += lowpass_fir_taps[i] * downsample1_i.get(i);
+          firsum_q += lowpass_fir_taps[i] * downsample1_q.get(i);
+        }
+        downsample2_i.push(firsum_i / lowpass_fir_frac);
+        downsample2_q.push(firsum_q / lowpass_fir_frac);
+        downsample1_i.advance(lowpass_fir_div);
+        downsample1_q.advance(lowpass_fir_div);
+
+        if ( not downsample2_i.empty() ) {
+          auto i = downsample2_i.pop();
+          auto q = downsample2_q.pop();
+          sum_mag += (i*i + q*q) / 1024;
+          n_mag++;
+        }
       }
     }
   }

@@ -8,7 +8,8 @@ class Oscillator {
     std::array<int32_t, 2> pop();
 
   private:
-    static std::array<int32_t, 256> sinetable;
+    static constexpr size_t tablesize{256};
+    static std::array<int32_t, tablesize> sinetable;
     static bool sinetable_init;
     uint32_t phase{0};
     uint32_t dphase;

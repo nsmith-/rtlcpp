@@ -32,7 +32,7 @@ void RTLDevice::start() {
   if ( not rthread_ ) {
     rthread_.reset(new std::thread([this](){
         status_ = rtlsdr_reset_buffer(cdev_);
-        rtlsdr_read_async(cdev_, rtl_callback_, reinterpret_cast<void*>(this), 0, 0);
+        rtlsdr_read_async(cdev_, rtl_callback_, reinterpret_cast<void*>(this), 16, 16384);
     }));
   }
 }
