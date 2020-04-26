@@ -2,6 +2,8 @@
 #define RTLDEVICE_H
 #include <atomic>
 #include <thread>
+#include <mutex>
+#include <condition_variable>
 #include "buffer.h"
 
 struct rtlsdr_dev;
@@ -11,6 +13,8 @@ class RTLDevice {
     enum Gain : int { GAIN_AUTO=0, GAIN_MANUAL=1 };
     typedef Buffer<unsigned char, 2*16*16384> Buffer_t;
     Buffer_t output;
+    std::mutex output_mutex;
+    std::condition_variable output_cv;
 
     static uint32_t count();
     RTLDevice(uint32_t index);

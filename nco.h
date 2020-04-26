@@ -12,8 +12,6 @@ class Oscillator {
     static bool sinetable_init;
     uint32_t phase{0};
     uint32_t dphase;
-
-    std::array<int32_t, 2> iq(uint32_t phase);
 };
 
 #endif

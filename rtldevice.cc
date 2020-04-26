@@ -49,7 +49,10 @@ uint32_t RTLDevice::bytesRead() { return bytesRead_; }
 
 void RTLDevice::rtl_callback_(unsigned char *buf, uint32_t len, void *ctx) {
   auto *cls = reinterpret_cast<RTLDevice*>(ctx);
-  cls->bytesRead_ += len;
-  std::lock_guard<std::mutex> lock(cls->output.mutex);
-  cls->output.extend(buf, len);
+  {
+    std::lock_guard<std::mutex> lock(cls->output_mutex);
+    cls->bytesRead_ += len;
+    cls->output.extend(buf, len);
+  }
+  cls->output_cv.notify_one();
 }
