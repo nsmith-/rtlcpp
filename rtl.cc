@@ -15,10 +15,10 @@ int main(void) {
     std::cout << "Opening device 0" << std::endl;
     RTLDevice device(0);
     constexpr uint32_t f_samp = 48000*5*5;
-    constexpr double f_center = 160.5e6;
-    constexpr double f_target = 160.4315e6;
+    constexpr double f_center = 162.4e6;
+    constexpr double f_target = 162.550e6;
     device.setFrequency((uint32_t) f_center);
-    Oscillator oscillator(f_target - f_center, f_samp);
+    Oscillator oscillator(f_center - f_target, f_samp);
     device.setSampleRate(f_samp);
     device.setGainMode(RTLDevice::GAIN_AUTO);
 
@@ -31,15 +31,19 @@ int main(void) {
     std::thread output_thread(
       [&fout, &output, &output_open, &output_mutex, &output_cv]
       {
+        char obuf[2*4*1024];
         while ( true ) {
           {
             std::unique_lock<std::mutex> lock(output_mutex);
             output_cv.wait(lock, [&output, &output_open]{return (output.used() > 16*1024) or not output_open;});
-            while ( not output.empty() ) {
-              fout << output.pop();
+            for (size_t i=0; i<2*4*1024; i+=2) {
+              auto tmp = output.pop();
+              // little-endian 16 bit
+              obuf[i+0] = (tmp >> 0) & 0xff;
+              obuf[i+1] = (tmp >> 8) & 0xff;
             }
           }
-          fout.flush();
+          fout.write(obuf, 2*4*1024);
           if ( not output_open ) break;
         }
       }
@@ -49,7 +53,7 @@ int main(void) {
     auto tic = std::chrono::steady_clock::now();
     uint32_t sum_mag{0};
     uint32_t n_mag{0};
-    for (size_t it=0; it<5000; ++it) {
+    for (size_t it=0; it<2000; ++it) {
       {
         std::lock_guard<std::mutex> olock(output_mutex);
         std::unique_lock<std::mutex> lock(device.output_mutex);

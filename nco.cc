@@ -2,7 +2,7 @@
 #include <math.h>
 #include "nco.h"
 
-bool Oscillator::sinetable_init = true;
+bool Oscillator::sinetable_init = false;
 std::array<int32_t, Oscillator::tablesize> Oscillator::sinetable;
 
 Oscillator::Oscillator(double frequency, uint32_t sample_rate, double initial_phase) {
@@ -25,8 +25,8 @@ Oscillator::Oscillator(double frequency, uint32_t sample_rate, double initial_ph
 }
 
 std::array<int32_t, 2> Oscillator::pop() {
-  bool q24 = phase & (1<<24);
-  bool q34 = phase & (1<<25);
+  bool q24 = phase & (1<<(16 + 8));
+  bool q34 = phase & (1<<(16 + 8 + 1));
   int32_t val = sinetable[(phase>>16) % tablesize];
   phase += dphase;
   if ( q24 ) {
